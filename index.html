@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Weather Pro</title>
+  <style>
+    :root{
+      --bg1:#050816;
+      --bg2:#0f172a;
+      --card:rgba(255,255,255,.10);
+      --card2:rgba(255,255,255,.16);
+      --text:#f8fafc;
+      --muted:#cbd5e1;
+      --accent:#38bdf8;
+      --accent2:#8b5cf6;
+      --accent3:#22c55e;
+      --shadow:0 24px 80px rgba(0,0,0,.36);
+      --border:1px solid rgba(255,255,255,.16);
+    }
+    [data-theme="light"]{
+      --bg1:#dbeafe;
+      --bg2:#f8fafc;
+      --card:rgba(255,255,255,.62);
+      --card2:rgba(255,255,255,.82);
+      --text:#0f172a;
+      --muted:#475569;
+      --accent:#0284c7;
+      --accent2:#7c3aed;
+      --accent3:#16a34a;
+      --shadow:0 24px 80px rgba(2,132,199,.18);
+      --border:1px solid rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    html{scroll-behavior:smooth}
+    body{
+      min-height:100vh;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(56,189,248,.20), transparent 25%),
+        radial-gradient(circle at 80% 15%, rgba(139,92,246,.18), transparent 22%),
+        radial-gradient(circle at 70% 80%, rgba(34,197,94,.12), transparent 20%),
+        linear-gradient(145deg,var(--bg2),var(--bg1));
+      padding:22px;
+      overflow-x:hidden;
+      position:relative;
+      transition:.35s ease;
+    }
+    body::before,
+    body::after{
+      content:"";
+      position:fixed;
+      border-radius:50%;
+      pointer-events:none;
+      filter:blur(10px);
+      opacity:.6;
+      animation:floatOrb 12s ease-in-out infinite;
+      z-index:0;
+    }
+    body::before{
+      width:320px;height:320px;left:-90px;top:120px;
+      background:radial-gradient(circle, rgba(56,189,248,.85), rgba(56,189,248,0) 70%);
+    }
+    body::after{
+      width:420px;height:420px;right:-130px;top:30px;
+      background:radial-gradient(circle, rgba(139,92,246,.75), rgba(139,92,246,0) 70%);
+      animation-delay:-4s;
+    }
+    @keyframes floatOrb{
+      0%,100%{transform:translateY(0) scale(1)}
+      50%{transform:translateY(-22px) scale(1.05)}
+    }
+    .app{
+      max-width:1200px;
+      margin:auto;
+      position:relative;
+      z-index:1;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      flex-wrap:wrap;
+      padding:18px 20px;
+      margin-bottom:20px;
+      background:var(--card);
+      border:var(--border);
+      border-radius:26px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(22px);
+    }
+    .brand h1{
+      font-size:2rem;
+      line-height:1.05;
+      background:linear-gradient(90deg,#fff,#7dd3fc,#c4b5fd);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      letter-spacing:.3px;
+    }
+    .brand p{
+      color:var(--muted);
+      margin-top:6px;
+      max-width:560px;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      border:none;
+      outline:none;
+      padding:12px 16px;
+      border-radius:14px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 14px 30px rgba(0,0,0,.18);
+      transition:transform .2s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .btn.secondary{
+      background:var(--card2);
+      color:var(--text);
+      border:var(--border);
+      box-shadow:none;
+      backdrop-filter:blur(18px);
+    }
+    .btn:hover{transform:translateY(-2px);filter:saturate(1.08)}
+    .btn:active{transform:translateY(0) scale(.98)}
+    .hero{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:20px;
+    }
+    .panel{
+      background:var(--card);
+      border:var(--border);
+      border-radius:28px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(22px);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(120deg, rgba(255,255,255,.10), transparent 30%, transparent 70%, rgba(255,255,255,.08));
+      pointer-events:none;
+    }
+    .search{
+      display:flex;
+      gap:10px;
+      margin-bottom:16px;
+      position:relative;
+      z-index:1;
+    }
+    .search input{
+      flex:1;
+      border:none;
+      outline:none;
+      padding:14px 16px;
+      border-radius:14px;
+      background:var(--card2);
+      color:var(--text);
+      border:var(--border);
+      font-size:1rem;
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .search input::placeholder{color:var(--muted)}
+    .search input:focus{
+      transform:translateY(-1px);
+      box-shadow:0 0 0 4px rgba(56,189,248,.18);
+    }
+    .main-weather{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:20px;
+      flex-wrap:wrap;
+      padding:8px 0 6px;
+      animation:fadeUp .7s ease both;
+      position:relative;
+      z-index:1;
+    }
+    .city{
+      font-size:2rem;
+      font-weight:900;
+      text-shadow:0 8px 24px rgba(0,0,0,.22);
+    }
+    .meta{
+      color:var(--muted);
+      margin-top:6px;
+    }
+    .temp{
+      font-size:4rem;
+      font-weight:900;
+      line-height:1;
+      text-shadow:0 8px 28px rgba(0,0,0,.24);
+    }
+    .desc{
+      font-size:1.05rem;
+      color:var(--muted);
+      text-transform:capitalize;
+      margin-top:6px;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-top:18px;
+      animation:fadeUp .9s ease both;
+      position:relative;
+      z-index:1;
+    }
+    .stat{
+      padding:14px;
+      border-radius:18px;
+      background:var(--card2);
+      border:var(--border);
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .stat:hover,.day:hover,.chip:hover{
+      transform:translateY(-4px);
+      box-shadow:0 14px 30px rgba(0,0,0,.18);
+    }
+    .stat span{
+      display:block;
+      color:var(--muted);
+      font-size:.9rem;
+      margin-bottom:6px;
+    }
+    .stat strong{font-size:1.1rem}
+    .section-title{
+      font-size:1.08rem;
+      font-weight:900;
+      margin-bottom:14px;
+      position:relative;
+      z-index:1;
+    }
+    .forecast{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px;
+      animation:fadeUp 1.05s ease both;
+      position:relative;
+      z-index:1;
+    }
+    .day{
+      text-align:center;
+      padding:16px 10px;
+      border-radius:18px;
+      background:var(--card2);
+      border:var(--border);
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .day h4{margin-bottom:8px}
+    .day .ic{
+      font-size:1.9rem;
+      margin:8px 0;
+      display:inline-block;
+      animation:bounceIcon 2s ease-in-out infinite;
+    }
+    @keyframes bounceIcon{
+      0%,100%{transform:translateY(0)}
+      50%{transform:translateY(-7px)}
+    }
+    .day p{color:var(--muted);font-size:.95rem}
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .chip{
+      padding:10px 14px;
+      border-radius:999px;
+      border:var(--border);
+      background:var(--card2);
+      color:var(--text);
+      cursor:pointer;
+      transition:transform .25s ease, box-shadow .25s ease, background .25s ease;
+    }
+    .footer-note{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:.9rem;
+      position:relative;
+      z-index:1;
+    }
+    .error{
+      margin-top:12px;
+      color:#fca5a5;
+      display:none;
+      position:relative;
+      z-index:1;
+    }
+    @keyframes fadeUp{
+      from{opacity:0; transform:translateY(18px)}
+      to{opacity:1; transform:translateY(0)}
+    }
+    @media (max-width:900px){
+      .hero{grid-template-columns:1fr}
+      .forecast{grid-template-columns:repeat(2,1fr)}
+      .topbar,.panel{border-radius:22px}
+    }
+    @media (max-width:560px){
+      body{padding:14px}
+      .search{flex-direction:column}
+      .forecast{grid-template-columns:1fr}
+      .temp{font-size:3.2rem}
+      .city{font-size:1.5rem}
+      .topbar{padding:16px}
+      .panel{padding:16px}
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Nova Weather Pro</h1>
+        <p>Modern weather app with animated glass UI, forecast, dark mode, and saved searches.</p>
+      </div>
+      <div class="controls">
+        <button class="btn secondary" id="themeBtn">Toggle Theme</button>
+        <button class="btn secondary" id="geoBtn">My Location</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="panel">
+        <div class="search">
+          <input id="cityInput" type="text" placeholder="Search city like Delhi, London, Mumbai..." />
+          <button class="btn" id="searchBtn">Search</button>
+        </div>
+
+        <div class="main-weather" id="mainCard">
+          <div>
+            <div class="city" id="cityName">--</div>
+            <div class="meta" id="dateText">--</div>
+            <div class="desc" id="weatherDesc">Search a city to start</div>
+          </div>
+          <div style="text-align:right">
+            <div class="temp" id="temp">--°</div>
+            <div class="desc" id="feelsLike">Feels like --°</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span>Humidity</span><strong id="humidity">--%</strong></div>
+          <div class="stat"><span>Wind</span><strong id="wind">-- km/h</strong></div>
+          <div class="stat"><span>Pressure</span><strong id="pressure">-- hPa</strong></div>
+          <div class="stat"><span>Visibility</span><strong id="visibility">-- km</strong></div>
+        </div>
+
+        <div class="error" id="errorBox">City not found. Try another name.</div>
+        <div class="footer-note">Tip: Search works for any city worldwide, and the card will show the country code too.</div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">Recent Searches</div>
+        <div class="chips" id="recentCities"></div>
+
+        <div style="height:18px"></div>
+
+        <div class="section-title">5 Day Forecast</div>
+        <div class="forecast" id="forecast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiKey = "fd1b1fb5716b4a22c4bc984d84ee1326";
+    const cityInput = document.getElementById("cityInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const geoBtn = document.getElementById("geoBtn");
+    const themeBtn = document.getElementById("themeBtn");
+    const errorBox = document.getElementById("errorBox");
+
+    const el = {
+      cityName: document.getElementById("cityName"),
+      dateText: document.getElementById("dateText"),
+      weatherDesc: document.getElementById("weatherDesc"),
+      temp: document.getElementById("temp"),
+      feelsLike: document.getElementById("feelsLike"),
+      humidity: document.getElementById("humidity"),
+      wind: document.getElementById("wind"),
+      pressure: document.getElementById("pressure"),
+      visibility: document.getElementById("visibility"),
+      forecast: document.getElementById("forecast"),
+      recentCities: document.getElementById("recentCities"),
+      mainCard: document.getElementById("mainCard")
+    };
+
+    let recent = JSON.parse(localStorage.getItem("nova_recent") || "[]");
+    let theme = localStorage.getItem("nova_theme") || "dark";
+    document.body.setAttribute("data-theme", theme);
+
+    themeBtn.onclick = () => {
+      theme = theme === "dark" ? "light" : "dark";
+      document.body.setAttribute("data-theme", theme);
+      localStorage.setItem("nova_theme", theme);
+    };
+
+    function saveRecent(city){
+      recent = [city, ...recent.filter(c => c.toLowerCase() !== city.toLowerCase())].slice(0,5);
+      localStorage.setItem("nova_recent", JSON.stringify(recent));
+      renderRecent();
+    }
+
+    function renderRecent(){
+      el.recentCities.innerHTML = recent.length
+        ? recent.map(c => `<button class="chip" onclick="loadCity('${c}')">${c}</button>`).join("")
+        : "<p style='color:var(--muted)'>No recent searches yet.</p>";
+    }
+
+    function iconFrom(code){
+      if(code >= 200 && code < 300) return "⛈️";
+      if(code >= 300 && code < 600) return "🌧️";
+      if(code >= 600 && code < 700) return "❄️";
+      if(code >= 700 && code < 800) return "🌫️";
+      if(code === 800) return "☀️";
+      if(code > 800) return "☁️";
+      return "🌍";
+    }
+
+    function setWeatherMood(code){
+      const moods = {
+        rain: "linear-gradient(145deg, #0f172a, #1d4ed8)",
+        clear: "linear-gradient(145deg, #0f172a, #f59e0b)",
+        clouds: "linear-gradient(145deg, #0f172a, #475569)",
+        storm: "linear-gradient(145deg, #111827, #7c3aed)",
+        snow: "linear-gradient(145deg, #0f172a, #38bdf8)"
+      };
+      let bg = moods.clouds;
+      if(code >= 200 && code < 300) bg = moods.storm;
+      else if(code >= 300 && code < 600) bg = moods.rain;
+      else if(code >= 600 && code < 700) bg = moods.snow;
+      else if(code === 800) bg = moods.clear;
+      document.body.style.background = bg;
+    }
+
+    async function loadCity(city){
+      errorBox.style.display = "none";
+      try{
+        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
+        const [currentRes, forecastRes] = await Promise.all([fetch(currentUrl), fetch(forecastUrl)]);
+        if(!currentRes.ok || !forecastRes.ok) throw new Error("City not found");
+        const current = await currentRes.json();
+        const forecast = await forecastRes.json();
+
+        el.cityName.textContent = `${current.name}, ${current.sys.country}`;
+        el.dateText.textContent = new Date().toLocaleString();
+        el.weatherDesc.textContent = `${iconFrom(current.weather[0].id)} ${current.weather[0].description}`;
+        el.temp.textContent = `${Math.round(current.main.temp)}°`;
+        el.feelsLike.textContent = `Feels like ${Math.round(current.main.feels_like)}°`;
+        el.humidity.textContent = `${current.main.humidity}%`;
+        el.wind.textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
+        el.pressure.textContent = `${current.main.pressure} hPa`;
+        el.visibility.textContent = `${(current.visibility / 1000).toFixed(1)} km`;
+
+        setWeatherMood(current.weather[0].id);
+
+        const daily = {};
+        forecast.list.forEach(item => {
+          const [day, hour] = item.dt_txt.split(" ");
+          if(hour === "12:00:00" && !daily[day]) daily[day] = item;
+        });
+
+        const days = Object.values(daily).slice(0,5);
+        el.forecast.innerHTML = days.map(item => {
+          const d = new Date(item.dt_txt).toLocaleDateString(undefined, {
+            weekday:"short", month:"short", day:"numeric"
+          });
+          return `
+            <div class="day">
+              <h4>${d}</h4>
+              <div class="ic">${iconFrom(item.weather[0].id)}</div>
+              <strong>${Math.round(item.main.temp)}°</strong>
+              <p>${item.weather[0].main}</p>
+            </div>
+          `;
+        }).join("");
+
+        saveRecent(current.name);
+        el.mainCard.animate(
+          [{ transform: "scale(0.98)", opacity: 0.6 }, { transform: "scale(1)", opacity: 1 }],
+          { duration: 320, easing: "ease-out" }
+        );
+      }catch(err){
+        errorBox.style.display = "block";
+      }
+    }
+
+    geoBtn.onclick = () => {
+      if(!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(async pos => {
+        errorBox.style.display = "none";
+        try{
+          const { latitude, longitude } = pos.coords;
+          const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+          const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+          const [currentRes, forecastRes] = await Promise.all([fetch(currentUrl), fetch(forecastUrl)]);
+          if(!currentRes.ok || !forecastRes.ok) throw new Error("Location failed");
+          const current = await currentRes.json();
+          const forecast = await forecastRes.json();
+
+          el.cityName.textContent = `${current.name}, ${current.sys.country}`;
+          el.dateText.textContent = new Date().toLocaleString();
+          el.weatherDesc.textContent = `${iconFrom(current.weather[0].id)} ${current.weather[0].description}`;
+          el.temp.textContent = `${Math.round(current.main.temp)}°`;
+          el.feelsLike.textContent = `Feels like ${Math.round(current.main.feels_like)}°`;
+          el.humidity.textContent = `${current.main.humidity}%`;
+          el.wind.textContent = `${Math.round(current.wind.speed * 3.6)} km/h`;
+          el.pressure.textContent = `${current.main.pressure} hPa`;
+          el.visibility.textContent = `${(current.visibility / 1000).toFixed(1)} km`;
+
+          setWeatherMood(current.weather[0].id);
+
+          const daily = {};
+          forecast.list.forEach(item => {
+            const [day, hour] = item.dt_txt.split(" ");
+            if(hour === "12:00:00" && !daily[day]) daily[day] = item;
+          });
+
+          const days = Object.values(daily).slice(0,5);
+          el.forecast.innerHTML = days.map(item => {
+            const d = new Date(item.dt_txt).toLocaleDateString(undefined, {
+              weekday:"short", month:"short", day:"numeric"
+            });
+            return `
+              <div class="day">
+                <h4>${d}</h4>
+                <div class="ic">${iconFrom(item.weather[0].id)}</div>
+                <strong>${Math.round(item.main.temp)}°</strong>
+                <p>${item.weather[0].main}</p>
+              </div>
+            `;
+          }).join("");
+
+          saveRecent(current.name);
+          el.mainCard.animate(
+            [{ transform: "scale(0.98)", opacity: 0.6 }, { transform: "scale(1)", opacity: 1 }],
+            { duration: 320, easing: "ease-out" }
+          );
+        } catch {
+          errorBox.style.display = "block";
+        }
+      }, () => {
+        errorBox.textContent = "Location permission denied.";
+        errorBox.style.display = "block";
+      });
+    };
+
+    searchBtn.onclick = () => {
+      if(cityInput.value.trim()) loadCity(cityInput.value.trim());
+    };
+
+    cityInput.addEventListener("keydown", e => {
+      if(e.key === "Enter") searchBtn.click();
+    });
+
+    renderRecent();
+    loadCity("Delhi");
+  </script>
+</body>
+</html>
